@@ -45,7 +45,6 @@ class TilesetFrame(tk.Frame):
                     tab.canvas.bind("<ButtonPress-1>", tab._onButtonPress)
                     tab.canvas.bind("<B1-Motion>", tab._onMotionPress)
                     tab.canvas.bind("<ButtonRelease-1>", tab._onButtonRelease)
-#                    tab.image.close()
                     self._createTab()
             else:
                 print("Tab already in use, use new tab.")

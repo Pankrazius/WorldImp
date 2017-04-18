@@ -6,7 +6,7 @@ from collections import OrderedDict
 from config import Labels, Msg, Paths, Dims
 from copy import copy
 from SpecialWidgets import ParentedNotebook, Rectangle
-from TimberManagement import ProjectTree
+from TimberManagement import ProjectTree, MapTree
 from PIL import ImageTk, Image
 from tkinter import ttk
 
