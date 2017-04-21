@@ -1,0 +1,131 @@
+World Imp - Karten- und Logikeditor für Imp-Engine
+
+1. Idee
+World Imp soll ein vollständiger Spieleeditor für 2-D bzw 2.5D Spiele (im Stile
+von Zelda(2D) bzw DiabloI oder Fallout(2.5D) sein.
+Dazu benötigt das Projekt:
+* Kachel-Editor (Tileset editor, TileImp)
+* Karteneditor (MapImp),
+* Figuren-Editor (Sprite editor, SpriteImp)
+* Gegenstände und Inventar-Editor, (ItemImp)
+* Dialog-Editor (DialogueImp)
+* Aufgaben-Editor (Quest editor, QuestImp)
+* Ton-Editor (SoundImp)
+* Diverse weitere Editoren für Feinheiten - Fraktionen, Beutelisten etc.
+
+Das Programm soll die Eingabe der oben genannten Elemente erleichtern, die
+Daten speichern und der ImpEngine die notwendigen Dateien zur Verfügung
+stellen.
+
+2. Details
+Das System soll modular aufgebaut werden. D.h. die einzelnen Imps werden sollen
+theoretisch unabhängig voneinander funktionieren und interagieren über einen
+zentralen Verteiler (WorldImp).
+Datenspeicherung soll über das Modul ElementTree und xml-Dateien abgehandelt
+werden.
+Jeder Imp legt selbstständig ElementTrees bzw. eigene Klassen die ElementTree
+benutzen an.
+
+2.1 WorldImp
+World Imp und alle subsequenten Elemente des Programms, die keinen eigenen
+Eintrag haben (TileList, TimberManagment) und so weiter.
+* Erstellen eines Notebooks für jeden Programmteil. Erledigt
+* Erstellen einer optischen Kachelliste. Erledigt
+
+ToDo:
+
+* Kachelliste mit Minimalgröße versehen
+* Reitergrößen anpassen
+
+
+2.2 TileImp
+* TileImp soll für jedes Tileset-Bild einen eigenen Reiter öffnen. Erledigt
+* Man soll Rastermaße festelegen können. Erledigt
+* Man soll Bereiche auf dem Bild markieren und per Knopfdruck in
+  den Teile-Editor packen können. Erledigt
+* Im Teile-Editor soll man einer Kachel verschiedene Werte zuweisen
+  können. In Arbeit
+* Durch Bestätigung der Eingaben, soll die Kachel in einem ElementTree
+  gespeichert werden. Erledigt
+* Durch Bestätigung der Eingaben, soll die Kachel der allgemeinen Kachelliste
+  zugewiesen werden. Erledigt
+ToDo:
+* Funktion um Tilesets automatisch in Kacheln zu zerlegen und diese als
+  Basis-Teile zu speichern.
+* Tilesets anlegen vereinfachen
+* Eingaben und Abfragen überarbeiten
+* Tileset-Tree in eigene Klasse auslagern
+* Prüf-Funktion um gleiche Tileset-Bilder auszusortieren
+
+2.3 MapImp
+ToDo:
+* Dynamisch vergrößerbares Numpy-Array anlegen
+* Chunks sollen einen Ausschnitt aus dem Array belegen und ein eigenes
+  'Inventar' für frei plazierbare Elemente enthalten
+
+2.4 SpriteImp
+ToDo:
+* NSC verwalten
+* NSC mit Animationen ausstatten.
+Notiz:
+* Eventuell fixierte Spriteset-Bilder für Kreaturen verwenden?
+* SpriteImp auch für Spezialeffekte (Explosionen, Zaubereffekte)?
+
+2.5 ItemImp
+ToDo:
+* Gegenstände modifizieren
+* In-Welt-Grafik und Inventargrafik festlegen
+* Werte festlegen
+
+2.6 DialogueImp
+Todo:
+* Dialoge Schreiben und speichern
+* Dialogen Farben und Schriftarten zuweisen
+* Dialogen die Möglichkeit einräumen Spielwerte und Queststufen zu verändern
+Optional:
+* Dialoge mit Ton unterlegen
+
+2.7 QuestImp
+ToDo:
+* Abenteuerstufen festlegen
+* Auslöser (Kollisionsfelder, Dialogoptionen...)
+* Abenteuerjournal mit aktiven, abgeschlossenen und gescheiterten
+  Abenteuern. Eventuell Unterscheiden nach Hauptabenteuer und Nebenaufgaben.
+
+2.8 SoundImp
+ToDo:
+* Soundeffekte speichern
+* Soundeffekte bestimmten Spieleffekten zuweisen.
+* Hintergrundmusik je nach Situation (Allgemein, Kampf,...)
+
+3. Notizen:
+
+MapImp: Ebenen:
+        Floor (Bodenkacheln mit fixierter Größe, kann Animierte Teile
+               enthalten)
+        EffectFloor(Effekte die unter dem Ziel sind)
+        EffectTop(Effekte, die über dem Ziel sind)
+        Wall (Wandelemente und unveränderliche Hindernisse mit fixen
+              Positionen)
+        Obstacle(Veränderliche und/oder nicht fixierte Hindernisse)
+
+4. Status
+
+Prototyp-Programmierung (PreAlpha)
+
+* WorldImp - Prototyp-Programmierung
+* TileImp - Prototyp-Programmierung
+* MapImp - Erste Schritte
+* SpriteImp - Nichts
+* ItemImp - Nichts
+* DialogueImp - Nichts
+* QuestImp - Nichts
+* SoundImp - Nichts
+
+
+
+
+
+
+
+

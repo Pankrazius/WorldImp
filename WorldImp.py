@@ -29,9 +29,11 @@ def drawMenu(root):
 if __name__ == "__main__":
 
     root = tk.Tk()
-    root.grid_rowconfigure(0, weight=1)
-    root.grid_columnconfigure(0, weight=1)
+    root.rowconfigure(0, weight=1)
+    root.columnconfigure(0, weight=1)
     main_window = MainWindow(root)
+    main_window.pack(fill=tk.BOTH, expand=1)
+    #main_window.grid(row=0, column=0, sticky="nesw")
     drawMenu(root)
     root.minsize(int(Dims.WIN_MIN_SIZE[0]), int(Dims.WIN_MIN_SIZE[1]))
     root.mainloop()

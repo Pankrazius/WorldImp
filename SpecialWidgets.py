@@ -10,6 +10,21 @@ class ParentedNotebook(ttk.Notebook):
         ttk.Notebook.__init__(self, top)
         self.top = top
 
+class DynamicScrollbar(tk.Scrollbar):
+    """an auto-hiding Scrollbar subclass """
+
+    def set(self, lo, hi):
+        if float(lo) <= 0.0 and float(hi) >= 1.0:
+            self.grid_remove()
+
+        else:
+            self.grid()
+        tk.Scrollbar.set(self, lo, hi)
+
+
+
+
+
 
 class Rectangle(object):
     """Basic rectangle"""

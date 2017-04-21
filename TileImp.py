@@ -7,14 +7,15 @@ class TilesetFrame(tk.Frame):
         tk.Frame.__init__(self, top)
         self.grid(row=0, column=0, sticky="nesw")
         self.grid_rowconfigure(0, weight=1)
-        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=10)
+        self.grid_columnconfigure(1, weight=90)
         self.label = Labels.MAIN_LABEL_TILESET
         self.top = top
         self.tile_editor = TileEditorFrame(self)
         self.tile_editor.config(bd=1, relief=tk.SUNKEN)
-        self.tile_editor.place(relx=0, rely=0, relwidth=0.2, relheight=1.0)
+        self.tile_editor.grid(row=0, column=0, sticky="nesw")
         self.tileset_nb = ParentedNotebook(self)
-        self.tileset_nb.place(relx=0.2, rely=0, relwidth=0.8, relheight=1.0)
+        self.tileset_nb.grid(row=0, column=1, sticky="nesw")
         self._createTab()
 
     def _createTab(self):
@@ -59,9 +60,10 @@ class TabFrame(tk.Frame):
     def __init__(self,top):
         tk.Frame.__init__(self,top)
         self.created = False
-        self.grid(row=0, column=0, sticky="nesw")
-        self.grid_rowconfigure(0, weight=1)
-        self.grid_columnconfigure(0, weight=1)
+        self.rowconfigure(0, weight=1)
+        self.rowconfigure(1, weight=0)
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=0)
         self.config(borderwidth=1, relief=tk.SUNKEN)
         self.top = top
         self.main = top.top.top
@@ -80,13 +82,13 @@ class TabFrame(tk.Frame):
         self.tss_height = tk.StringVar()
         self.tss_lmargin = tk.StringVar()
         self.tss_tmargin = tk.StringVar()
-        self.canvas = tk.Canvas(self)
+        self.canvas = tk.Canvas(self)#, width=1, height=1)
         self.canvas.grid(row=0, column=0, sticky="nesw")
         self.canvas.grid_rowconfigure(0, weight=1)
         self.canvas.grid_columnconfigure(0, weight=1)
-        self.vbar = tk.Scrollbar(self, orient=tk.VERTICAL, command=self.canvas.yview)
+        self.vbar = DynamicScrollbar(self, orient=tk.VERTICAL, command=self.canvas.yview)
         self.vbar.grid(row=0, column=1, sticky="ns")
-        self.hbar = tk.Scrollbar(self, orient=tk.HORIZONTAL, command=self.canvas.xview)
+        self.hbar = DynamicScrollbar(self, orient=tk.HORIZONTAL, command=self.canvas.xview)
         self.hbar.grid(row=1, column=0, sticky="ew")
         self.canvas.config(xscrollcommand=self.hbar.set, yscrollcommand=self.vbar.set)
         self.buttonframe = tk.Frame(self, bd=1, relief=tk.RIDGE)
@@ -314,12 +316,13 @@ class TabFrame(tk.Frame):
         self.created = True
 
     def newId(self):
-        return str(len(list(self.main.dummy_tree.root.find("tilesets"))))
+        return str(len(list(self.main.dummy_tree.root.find("tilesets")))+1)
 
 
 class TileEditorFrame(tk.Frame):
     """For editing single Tiles"""
     def __init__(self, top):
+        ## Data Stuff
         tk.Frame.__init__(self, top)
         self.top = top
         self.main = self.top.top
@@ -328,9 +331,6 @@ class TileEditorFrame(tk.Frame):
         self.tile = {}
         self.current_tree = None
         self.current_ts_id = None
-        self.config(border=1, relief=tk.SUNKEN)
-        self.tile_canvas = tk.Canvas(self)
-        self.tile_canvas.place(relx=0, rely=0, relwidth=1.0, relheight=0.3)
         self.has_animation = tk.StringVar()
         self.has_seasons = tk.StringVar()
         self.has_idle = tk.StringVar()
@@ -338,8 +338,15 @@ class TileEditorFrame(tk.Frame):
         self.is_container = tk.StringVar()
         self.is_door = tk.StringVar()
         self.has_lock = tk.StringVar()
+        ## Layout Stuff
+        self.rowconfigure(0, weight=3)
+        self.rowconfigure(1, weight=7)
+        self.config(border=1, relief=tk.SUNKEN)
+        self.tile_canvas = tk.Canvas(self, width=1, height=1)
+        self.tile_canvas.grid(row=0, column=0, sticky="nesw")
+        ## Buttons
         self.buttonframe = tk.Frame(self)
-        self.buttonframe.place(relx=0, rely=0.3, relwidth=1.0, relheight=0.6)
+        self.buttonframe.grid(row=1, column=0, sticky="nesw")
         self.confirm_button  = tk.Button(self.buttonframe,
                                          text=Labels.BUTTON_OK,
                                          state=tk.DISABLED,
@@ -427,7 +434,7 @@ class TileEditorFrame(tk.Frame):
         self.created = False
 
     def newId(self):
-        return str(len(list(self.current_tree.find("tileset"))))
+        return str(len(list(self.current_tree.find("tileset")))+1)
 
     def animationSubButtons(self):
         if self.has_animation.get():

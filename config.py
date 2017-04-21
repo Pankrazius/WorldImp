@@ -47,6 +47,7 @@ class Labels:
     TOOL_LMARGIN = "Left margin"
     TOOL_TMARGIN = "Top margin"
     TILESET_NB_NEW = "New Tab"
+    MAP_NB_NEW = "New Map"
 
 
 
