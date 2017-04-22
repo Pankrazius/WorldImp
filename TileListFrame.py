@@ -23,11 +23,17 @@ class TileListFrame(tk.Frame):
         self.images = {}
         self.active_tile = None
 
-    def _activate(self, event):
-        print("klicked Label")
-        event.widget.config(bg="green")
-        self.active_tile = event.widget
-        print(event.widget.tid)
+    def _select(self, event):
+
+
+        tiles = self.top.tabs[0].brush.tiles
+        if event.widget in tiles:
+            tiles.pop(tiles.index(event.widget))
+            event.widget.config(bg = "#DDDDDD")
+        else:
+            event.widget.config(bg = "green")
+            tiles.append(event.widget)
+            print(len(tiles))
 
 
     def _update(self):
@@ -55,7 +61,7 @@ class TileListFrame(tk.Frame):
                 self.images[t.get("tid")] = image
                 print(self.tiles)
                 tile = Tile(self.canvas, tid, image=image)
-                tile.bind("<Button-1>", self._activate)
+                tile.bind("<Button-1>", self._select)
 
                 tile_return = self.canvas.create_window(0,y, window=tile, anchor=tk.NW)
                 self.tiles[tile_return]= tile

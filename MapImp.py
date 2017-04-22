@@ -10,9 +10,9 @@ class MapFrame(tk.Frame):
         self.tree = MapTree()
         ## Widget Layout Stuff
         self.maps_nb = ParentedNotebook(self)
-        self.tools_frame = ToolFrame(self)
+        self.brush = Brush(self)
         self.maps_nb.grid(row=0, column=0, sticky="nesw")
-        self.tools_frame.grid(row=0, column=1, sticky="nesw")
+        self.brush.grid(row=0, column=1, sticky="nesw")
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=90)
         self.grid_columnconfigure(1, weight=10)
@@ -24,15 +24,43 @@ class MapFrame(tk.Frame):
 
 
 
-class ToolFrame(tk.Frame):
+class Brush(tk.Frame):
 
     def __init__(self,top):
         tk.Frame.__init__(self,top)
         ## Data Stuff
         self.top = top
-
-
+        self.tiles = []
+        self.selected = "point"
+        self.brushes = [("erase", self.erase), ("point", self.point)]
+        self.buttons = []
         ## Widget Layout Stuff
+        for b in self.brushes:
+            button = tk.Button(self, text=b[0], command=lambda func=b[0]: self.set(func))
+            button.pack()
+            self.buttons.append(button)
+
+    def set(self, func):
+        self.selected = func
+        print("Called Function-Change to: ", func)
+
+    def current(self, event, *args):
+        functions = {k:v for k, v in self.brushes}
+        functions[self.selected](event)
+
+    def erase(self, event):
+        event.widget.master.setTile(event, tile=0.)
+
+
+
+    def point(self, event):
+        print("Called Point-Function")
+        tid = self.tiles
+        if tid:
+            event.widget.master.setTile(event, tid[0])
+
+
+
 
 class MapTab(tk.Frame):
     """
@@ -56,6 +84,7 @@ class MapTab(tk.Frame):
         else:
             self.cell_size = (self.cell_width, self.cell_height)
         self.map_array = self._createMap()[0]
+        self.tile_dict = {}
         self.chunk_array = self._createMap()[1]
         self.chunks = self._createMap()[2]
         # Widget Layout Stuff
@@ -80,7 +109,7 @@ class MapTab(tk.Frame):
         chunks = {}
         clist = []
         for i in range(0, self.map_size[0]*self.map_size[1]):
-            chunks[i+1] = Chunk()
+            chunks[i+1] = Chunk(self)
         chunk_array = np.asarray(list(chunks.keys()))
         chunk_array.resize(self.map_size[0], self.map_size[1])
         return map_array, chunk_array, chunks
@@ -112,9 +141,9 @@ class MapTab(tk.Frame):
                 line = self.canvas.create_line(iso(0, hline*self.cell_height),
                                                iso(self.map_array.shape[1]*self.cell_width, hline*self.cell_height))
                 self.canvas_objects.append(line)
-        self.canvas.bind("<Button-1>", self.setTile)
+        self.canvas.bind("<Button-1>", self.top.top.brush.current)
 
-    def setTile(self, event):
+    def setTile(self, event, tile):
         e = event.widget
         print("called setTile in MapTab")
         print("EventX = ",event.x, "EventY = ", event.y)
@@ -126,34 +155,37 @@ class MapTab(tk.Frame):
         celly = int(cy) // self.cell_height
 
         print("Cell Coordinates", cellx, celly)
-        active_tile = self.main.main_tilelist.active_tile
-        if active_tile:
-            self.map_array[cellx, celly] = active_tile.tid
-        else:
-            print("Nothing selected")
-            return
-        np.set_printoptions(threshold=np.inf)
-        print(self.map_array)
+
+        # ToDo: Check for array dimensions. Don't print outside the sacred lands.
+
+        if self.tile_dict.get((cellx, celly)):
+            self.canvas.delete(self.tile_dict[(cellx, celly)])
+        if tile:
+            map_posx, map_posy = iso(cellx * self.cell_width, celly * self.cell_height)
+            image = self.main.main_tilelist.images[tile.tid]
+            self.tile_dict[(cellx, celly)] = self.canvas.create_image(map_posx, map_posy, image=image, anchor=tk.N)
 
 
 
 
+    def update(self):
+        self.canvas.create_image()
+        print(self.main.main_tilelist.images)
 
 
-
-
-class Chunk:
+class Chunk(object):
     """
     A multiple Cells sized Map-Chunk
 
     contains all Screen-Objects above Wall-level
     """
 
-    def __init__(self):
+    def __init__(self, top):
+        self.top = top
         self.inventory = Inventory(self)
 
 
-class Cell:
+class Cell(object):
     """
     Basic Cell for Map.
     """
@@ -166,7 +198,7 @@ class Cell:
 ## Note: Cell could be replaced with simple dictionary.?
 
 
-class Inventory():
+class Inventory(object):
     """
     Basic inventory. Contains dict and link to parent.
     """
@@ -197,3 +229,11 @@ if __name__ == "__main__":
     testmap.pack(expand=1, fill=tk.BOTH)
 
     master.mainloop()
+
+
+
+
+
+
+
+
