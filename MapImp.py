@@ -8,14 +8,15 @@ class MapFrame(tk.Frame):
         self.top = top
         self.label = Labels.MAIN_LABEL_MAPEDITOR
         self.tree = MapTree()
+        self.cell_range = []
         ## Widget Layout Stuff
         self.maps_nb = ParentedNotebook(self)
-        self.brush = Brush(self)
+        self.brush = ToolFrame(self)
         self.maps_nb.grid(row=0, column=0, sticky="nesw")
-        self.brush.grid(row=0, column=1, sticky="nesw")
+        self.brush.grid(row=0, column=1, sticky="ns")
         self.grid_rowconfigure(0, weight=1)
-        self.grid_columnconfigure(0, weight=90)
-        self.grid_columnconfigure(1, weight=10)
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, minsize=80)
         self._createPage()
 
     def _createPage(self):
@@ -23,43 +24,93 @@ class MapFrame(tk.Frame):
         self.maps_nb.add(map, text=Labels.MAP_NB_NEW)
 
 
+class ToolFrame(tk.Frame):
 
-class Brush(tk.Frame):
-
-    def __init__(self,top):
-        tk.Frame.__init__(self,top)
+    def __init__(self,top,**kwargs):
+        tk.Frame.__init__(self,top,**kwargs)
         ## Data Stuff
         self.top = top
         self.tiles = []
-        self.selected = "point"
-        self.brushes = [("erase", self.erase), ("point", self.point)]
+        self.eraser = [EraserTile()]
+
+        self.brushes = OrderedDict([("erase", SimpleBrush(self.master, tiles=self.eraser)),
+                        ("point", SimpleBrush(self.master, tiles=self.tiles))])
+        self.selected = self.brushes["point"]
         self.buttons = []
         ## Widget Layout Stuff
         for b in self.brushes:
-            button = tk.Button(self, text=b[0], command=lambda func=b[0]: self.set(func))
-            button.pack()
+            button = tk.Button(self, text=b)
+            button.config(command=lambda sel=button, func=b: self.set(sel, func))
+            button.pack(fill=tk.X)
             self.buttons.append(button)
+        self.config_frame = tk.Frame(self)
+        self.config_frame.pack()
 
-    def set(self, func):
-        self.selected = func
+
+    def set(self, selected_button, func):
+        for button in self.buttons:
+            button.config(bg="grey80", activebackground="grey100")
+            selected_button.config(bg="green", activebackground="green")
+        print(func)
+        self.selected = self.brushes[func]
+        print(self.selected)
+
+        #self.selected = self.brushes[func]
+
         print("Called Function-Change to: ", func)
 
-    def current(self, event, *args):
-        functions = {k:v for k, v in self.brushes}
-        functions[self.selected](event)
+    #def current(self, event, *args):
+    #    self.brushes[self.selected]
 
     def erase(self, event):
         event.widget.master.setTile(event, tile=0.)
 
-
-
     def point(self, event):
-        print("Called Point-Function")
         tid = self.tiles
         if tid:
             event.widget.master.setTile(event, tid[0])
 
+#ToDo: Refactor brush-functions to classes, or get config done otherwise.
 
+class EraserTile:
+
+    def __init__(self):
+        self.tid = 0.
+
+class SimpleBrush(object):
+    """
+    Basic Brush, resizable
+
+    takes: master = master-object, source for area information
+           tid = source for tileIds to print
+
+    functions: paint(self, event), paints tile on canvas, sets tileID
+                                   in array
+               _config(self): internal method, sets config-frame
+    """
+
+    def __init__(self, master, tiles):
+        self.master = master
+        self.size = 1
+        self.tiles = tiles
+        self._config()
+
+    def paint(self, event):
+        if len(self.master.cell_range) > 0 and len(self.tiles) > 0:
+            for cell in self.master.cell_range:
+                event.widget.master.setTile(cell, tile=self.tiles[0])
+            np.set_printoptions(threshold=np.inf)
+            print(event.widget.master.map_array)
+        else:
+            print("Either no size given or no tiles selected")
+            return False
+
+    def _config(self):
+        pass
+
+
+class ComplexBrush(SimpleBrush):
+    pass
 
 
 class MapTab(tk.Frame):
@@ -101,6 +152,7 @@ class MapTab(tk.Frame):
         ## Function Stuff
         self.drawGrid()
         self.canvas.config(scrollregion=self.canvas.bbox(tk.ALL))
+
     def _createMap(self):
         """sets a new empty map"""
         width = self.map_size[0] * self.chunk_size
@@ -141,33 +193,55 @@ class MapTab(tk.Frame):
                 line = self.canvas.create_line(iso(0, hline*self.cell_height),
                                                iso(self.map_array.shape[1]*self.cell_width, hline*self.cell_height))
                 self.canvas_objects.append(line)
-        self.canvas.bind("<Button-1>", self.top.top.brush.current)
+        self.canvas.bind("<Button-1>", self.paintCells)
+        self.canvas.bind("<Motion>", self.getCellpos)
 
-    def setTile(self, event, tile):
+    def paintCells(self,event):
+        cellx, celly = self.getCellpos(event)
+        size = self.master.master.brush.selected.size
+        del self.master.master.cell_range[:]
+        cells = self.getCellRange(cellx, celly, 4)
+        self.master.master.cell_range.extend(cells)
+        self.master.master.brush.selected.paint(event)
+        print(self.master.master.cell_range)
+        print(len(self.master.master.cell_range))
+
+    def getCellRange(self, cellx, celly, size):
+        """returns list of cells to paint on"""
+        y = int(celly - ((size -1) / 2))
+        x = int(cellx - ((size -1) / 2))
+        _y = int(celly + ((size -1) / 2))
+        _x = int(cellx + ((size -1) / 2))
+        print("Y",y, "X",x, "Y2",_y, "X2",_x, "dy, dx", (_y - y), (_x - x))
+        return list(product(range(x, _x+1), range(y,_y+1)))
+
+    def getCellpos(self, event):
+        """returns actual cell the mousepointer is over"""
         e = event.widget
-        print("called setTile in MapTab")
-        print("EventX = ",event.x, "EventY = ", event.y)
-        print("Screenpos = ", int(e.canvasx(event.x)), int(e.canvasy(event.y)))
         cx, cy = cart(e.canvasx(event.x), e.canvasy(event.y))
-        print("Carthesian", cx, cy)
-
         cellx = int(cx) // self.cell_width
         celly = int(cy) // self.cell_height
+        return cellx, celly
 
-        print("Cell Coordinates", cellx, celly)
+    def setTile(self, cell, tile):
+        """prints given tile on given cell"""
+        assert isinstance(cell, tuple)
+        cellx, celly = cell
 
-        # ToDo: Check for array dimensions. Don't print outside the sacred lands.
+        if cellx < 0 or cellx > self.map_array.shape[0]-1 or celly < 0 or celly > self.map_array.shape[1]-1:
+            return
 
         if self.tile_dict.get((cellx, celly)):
             self.canvas.delete(self.tile_dict[(cellx, celly)])
+
         if tile:
+            self.map_array[cellx,celly] = tile.tid
+            if tile.tid == 0.0:
+                return
             map_posx, map_posy = iso(cellx * self.cell_width, celly * self.cell_height)
             image = self.main.main_tilelist.images[tile.tid]
             self.tile_dict[(cellx, celly)] = self.canvas.create_image(map_posx, map_posy, image=image, anchor=tk.N)
-
-
-
-
+#
     def update(self):
         self.canvas.create_image()
         print(self.main.main_tilelist.images)

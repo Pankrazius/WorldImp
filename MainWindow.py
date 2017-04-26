@@ -11,7 +11,7 @@ class MainWindow(tk.Frame):
         tk.Frame.__init__(self, top)
         ## Layout Stuff
         self.rowconfigure(0, weight=1)
-        self.columnconfigure(0, weight=15)
+        self.columnconfigure(0, weight=15, minsize=80)
         self.columnconfigure(1, weight=85)
         self.main_tilelist = TileListFrame(self)
         self.main_tilelist.grid(row=0, column=0, sticky="nesw")

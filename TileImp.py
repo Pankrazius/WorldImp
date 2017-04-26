@@ -28,25 +28,51 @@ class TilesetFrame(tk.Frame):
         key = self.tileset_nb.select().split(".")[-1]
         return self.tileset_nb.children[key]
 
+    def _checkFile(self, filename):
+        """
+        Checks if <filename> is already added to project-tree.
+
+        arguments: filename String; a filepath returned from loadImage func.
+
+        returns: False if filename is in project-tree; True otherwise
+        """
+        print(self.master.check)
+        n = filename.split("/")
+        name1 = n[-1].split(".")[0]
+        tree = self.master.dummy_tree.tree.getroot()
+        name_list = tree.find("tilesets").findall("tileset")
+        print(name_list)
+        if len(name_list) > 0:
+            for name in name_list:
+                if name1 == name.get("file_path").split("/")[-1].split(".")[0]:
+                    return False
+        else: return True
+        return True
+
     def loadImage(self):
         options = {"filetypes": [("PNG image", ".png"), ("JPEG image", ".jpg")], "initialdir": Paths.DEFAULT_LOAD}
         filename = tkfd.askopenfilename(**options)
         if filename:
+            if self._checkFile(filename) == False:
+                print("Image of same name already opened.")
+                return False
+
             tab = self._getTab()
-            if tab.used is False:
+            if tab.image is None:
                 with open(filename, mode="rb") as file:
                     tab.imagepath = os.path.relpath(filename, os.getcwd())
                     tab.image = Image.open(filename)
                     tab.tkimage = ImageTk.PhotoImage(file=file)
                     self.tileset_nb.tab(tab, text=file.name.split("/")[-1])
+                    tab.setTileset()
                     tab.canvas.create_image(0, 0, image=tab.tkimage, anchor=tk.NW)
                     tab.canvas.config(scrollregion=(0, 0, tab.tkimage.width(), tab.tkimage.height()))
-                    tab.used = True
                     tab.create_tileset_button.config(state=tk.NORMAL)
                     tab.canvas.bind("<ButtonPress-1>", tab._onButtonPress)
                     tab.canvas.bind("<B1-Motion>", tab._onMotionPress)
                     tab.canvas.bind("<ButtonRelease-1>", tab._onButtonRelease)
                     self._createTab()
+
             else:
                 print("Tab already in use, use new tab.")
         else:
@@ -67,7 +93,6 @@ class TabFrame(tk.Frame):
         self.config(borderwidth=1, relief=tk.SUNKEN)
         self.top = top
         self.main = top.top.top
-        self.used = False
         self.imagepath = None
         self.image = None
         self.tkimage = None
@@ -281,6 +306,7 @@ class TabFrame(tk.Frame):
             pass
 
     def setTileset(self):
+        print("CalledSetTileset")
         id_ = self.newId()
         # build TilesetElement for ProjectTree
         project_ts = self.main.dummy_tree.root.find("tilesets")
@@ -288,6 +314,7 @@ class TabFrame(tk.Frame):
         project_element.set("id", id_)
         print(project_element.get("id"))
         project_element.set("file_path", self.imagepath.split(".")[0]+".tsx")
+        print(project_element.get("file_path"))
         project_ts.append(project_element)
         et.dump(project_ts)
         # build TilesetTree
@@ -301,14 +328,15 @@ class TabFrame(tk.Frame):
         ts_element.set("lmargin", self.tss_lmargin.get())
         ts_element.set("tmargin", self.tss_tmargin.get())
         root.append(ts_element)
+        et.dump(ts_element)
         self.tree = et.ElementTree(root)
         # keep reference of TilesetTree
         self.main.main_tilelist.trees[ts_element.get("id")] = self.tree
         # close windows, update buttons
-        self.main.widgets["confirm_button"].destroy()
-        self.main.widgets["make_tileset"].destroy()
-        del self.main.widgets["confirm_button"]
-        del self.main.widgets["make_tileset"]
+        #self.main.widgets["confirm_button"].destroy()
+        #self.main.widgets["make_tileset"].destroy()
+        #del self.main.widgets["confirm_button"]
+        #del self.main.widgets["make_tileset"]
         self.create_tileset_button.config(state=tk.DISABLED)
         self.show_grid_button.config(state=tk.NORMAL)
         self.apply_button.config(state=tk.NORMAL)

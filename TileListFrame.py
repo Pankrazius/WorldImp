@@ -23,9 +23,18 @@ class TileListFrame(tk.Frame):
         self.images = {}
         self.active_tile = None
 
-    def _select(self, event):
+    def _select_single(self,event):
+        """select single tile"""
+        tiles = self.top.tabs[0].brush.tiles
+        for tile in tiles:
+            tile.config(bg = "#DDDDDD")
+        del tiles[:]
+        event.widget.config(bg="green")
+        tiles.append(event.widget)
 
 
+    def _select_mult(self, event):
+        """select multiple tiles"""
         tiles = self.top.tabs[0].brush.tiles
         if event.widget in tiles:
             tiles.pop(tiles.index(event.widget))
@@ -33,10 +42,12 @@ class TileListFrame(tk.Frame):
         else:
             event.widget.config(bg = "green")
             tiles.append(event.widget)
-            print(len(tiles))
+
+
 
 
     def _update(self):
+        del self.master.tabs[0].brush.tiles[:] # clearing selected tiles list
         print("called TilesetListFrame._update.")
         y = 0
 
@@ -61,7 +72,7 @@ class TileListFrame(tk.Frame):
                 self.images[t.get("tid")] = image
                 print(self.tiles)
                 tile = Tile(self.canvas, tid, image=image)
-                tile.bind("<Button-1>", self._select)
+                tile.bind("<Button-1>", self._select_single)
 
                 tile_return = self.canvas.create_window(0,y, window=tile, anchor=tk.NW)
                 self.tiles[tile_return]= tile
