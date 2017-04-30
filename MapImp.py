@@ -194,13 +194,13 @@ class MapTab(tk.Frame):
                                                iso(self.map_array.shape[1]*self.cell_width, hline*self.cell_height))
                 self.canvas_objects.append(line)
         self.canvas.bind("<Button-1>", self.paintCells)
-        self.canvas.bind("<Motion>", self.getCellpos)
+        self.canvas.bind("<Motion>", self.showFrame)
 
     def paintCells(self,event):
         cellx, celly = self.getCellpos(event)
         size = self.master.master.brush.selected.size
         del self.master.master.cell_range[:]
-        cells = self.getCellRange(cellx, celly, 4)
+        cells = self.getCellRange(cellx, celly, 5)
         self.master.master.cell_range.extend(cells)
         self.master.master.brush.selected.paint(event)
         print(self.master.master.cell_range)
@@ -212,7 +212,6 @@ class MapTab(tk.Frame):
         x = int(cellx - ((size -1) / 2))
         _y = int(celly + ((size -1) / 2))
         _x = int(cellx + ((size -1) / 2))
-        print("Y",y, "X",x, "Y2",_y, "X2",_x, "dy, dx", (_y - y), (_x - x))
         return list(product(range(x, _x+1), range(y,_y+1)))
 
     def getCellpos(self, event):
@@ -241,6 +240,17 @@ class MapTab(tk.Frame):
             map_posx, map_posy = iso(cellx * self.cell_width, celly * self.cell_height)
             image = self.main.main_tilelist.images[tile.tid]
             self.tile_dict[(cellx, celly)] = self.canvas.create_image(map_posx, map_posy, image=image, anchor=tk.N)
+
+    def showFrame(self,event):
+        cellx, celly = self.getCellpos(event)
+        size = self.master.master.brush.selected.size
+        cells = self.getCellRange(cellx, celly, size)
+        tl = min(cells)
+        br = max(cells)
+
+
+
+
 #
     def update(self):
         self.canvas.create_image()
