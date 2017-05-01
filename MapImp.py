@@ -138,6 +138,8 @@ class MapTab(tk.Frame):
         self.tile_dict = {}
         self.chunk_array = self._createMap()[1]
         self.chunks = self._createMap()[2]
+        self.celpos = False
+        self.brush_frame = False
         # Widget Layout Stuff
         self.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1)
@@ -149,6 +151,7 @@ class MapTab(tk.Frame):
         self.hbar = DynamicScrollbar(self, orient=tk.HORIZONTAL, command=self.canvas.xview)
         self.hbar.grid(row=1, column=0, sticky="ew")
         self.canvas.config(xscrollcommand=self.hbar.set, yscrollcommand=self.vbar.set)
+
         ## Function Stuff
         self.drawGrid()
         self.canvas.config(scrollregion=self.canvas.bbox(tk.ALL))
@@ -194,7 +197,13 @@ class MapTab(tk.Frame):
                                                iso(self.map_array.shape[1]*self.cell_width, hline*self.cell_height))
                 self.canvas_objects.append(line)
         self.canvas.bind("<Button-1>", self.paintCells)
+        self.canvas.bind("<Enter>", self.drawFrame)
+        self.canvas.bind("<Leave>", self.killFrame)
         self.canvas.bind("<Motion>", self.showFrame)
+
+
+
+
 
     def paintCells(self,event):
         cellx, celly = self.getCellpos(event)
@@ -242,11 +251,59 @@ class MapTab(tk.Frame):
             self.tile_dict[(cellx, celly)] = self.canvas.create_image(map_posx, map_posy, image=image, anchor=tk.N)
 
     def showFrame(self,event):
-        cellx, celly = self.getCellpos(event)
+        if self.brush_frame:
+            cell = self.getCellpos(event)
+            if not self.celpos or self.celpos != cell:
+                print("Update Celpos; old Celpos is", self.celpos, "new Celpos is", cell)
+                oldcell = copy(self.celpos)
+                self.celpos = cell
+                if oldcell:
+                    self.killFrame(event)
+                    self.drawFrame(event)
+
+
+
+                    #if cell[0] < oldcell[0]:
+                    #    print("West")
+                    #elif cell[0] > oldcell[0]:
+                    #    print("East")
+                    #elif cell[1] < oldcell[1]:
+                    #    print("North")
+                    #elif cell[1] > oldcell[1]:
+                    #    print("South")
+                else:
+                    pass
+            else:
+                pass
+
+    def drawFrame(self, event):
+        print ("entered Canvas, activated draw Frame")
         size = self.master.master.brush.selected.size
-        cells = self.getCellRange(cellx, celly, size)
+        cell = self.getCellpos(event)
+        cells = self.getCellRange(cell[0], cell[1], size)
         tl = min(cells)
-        br = max(cells)
+
+        nw = iso(tl[0] * self.cell_width, tl[1] * self.cell_height)
+        ne = iso((tl[0] + size) * self.cell_width, tl[1] * self.cell_height)
+        sw = iso(tl[0] * self.cell_width, (tl[1]+size)* self.cell_height)
+        se = iso((tl[0] + size) * self.cell_width, (tl[1] + size) * self.cell_height)
+        print(tl)
+        print (nw, ne, se, sw)
+        self.brush_frame = self.canvas.create_polygon(sw, nw , ne, se, fill = "", outline="red")
+
+
+
+
+        pass
+
+    def killFrame(self, event):
+        print("left canvas, activated kill frame function")
+        self.canvas.delete(self.brush_frame)
+        self.brush_frame = False
+
+
+
+
 
 
 
