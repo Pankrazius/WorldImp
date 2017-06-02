@@ -1,40 +1,43 @@
 from imports import *
 
+
 class MapFrame(tk.Frame):
 
-    def __init__(self,top, **kwargs):
-        tk.Frame.__init__(self,top,**kwargs)
+    def __init__(self, top, **kwargs):
+        tk.Frame.__init__(self, top, **kwargs)
         ## Data Stuff
         self.top = top
         self.label = Labels.MAIN_LABEL_MAPEDITOR
         self.tree = MapTree()
         self.cell_range = []
-        ## Widget Layout Stuff
+        ## Layout Stuff
         self.maps_nb = ParentedNotebook(self)
         self.brush = ToolFrame(self)
-        self.maps_nb.grid(row=0, column=0, sticky="nesw")
+        self.maps_nb.grid(row=0, column=0, rowspan=2, sticky="nesw")
         self.brush.grid(row=0, column=1, sticky="ns")
         self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(0, weight=1)
-        self.grid_columnconfigure(1, minsize=80)
+        self.grid_columnconfigure(1, minsize=128)
         self._createPage()
+        print(self)
 
     def _createPage(self):
-        map = MapTab(self.maps_nb)
-        self.maps_nb.add(map, text=Labels.MAP_NB_NEW)
+        map_ = MapTab(self.maps_nb)
+        self.maps_nb.add(map_, text=Labels.MAP_NB_NEW)
 
 
 class ToolFrame(tk.Frame):
 
-    def __init__(self,top,**kwargs):
-        tk.Frame.__init__(self,top,**kwargs)
+    def __init__(self, top, **kwargs):
+        tk.Frame.__init__(self, top, **kwargs)
         ## Data Stuff
         self.top = top
         self.tiles = []
         self.eraser = [EraserTile()]
 
-        self.brushes = OrderedDict([("erase", SimpleBrush(self.master, tiles=self.eraser)),
-                        ("point", SimpleBrush(self.master, tiles=self.tiles))])
+        self.brushes = OrderedDict([("erase", SimpleBrush(self.master, tiles=self.eraser, name="Eraser")),
+                        ("point", SimpleBrush(self.master, tiles=self.tiles, name="Point"))])
         self.selected = self.brushes["point"]
         self.buttons = []
         ## Widget Layout Stuff
@@ -46,13 +49,13 @@ class ToolFrame(tk.Frame):
         self.config_frame = tk.Frame(self)
         self.config_frame.pack()
 
-
     def set(self, selected_button, func):
         for button in self.buttons:
             button.config(bg="grey80", activebackground="grey100")
             selected_button.config(bg="green", activebackground="green")
         print(func)
         self.selected = self.brushes[func]
+        self.selected._config()
         print(self.selected)
 
         #self.selected = self.brushes[func]
@@ -70,12 +73,12 @@ class ToolFrame(tk.Frame):
         if tid:
             event.widget.master.setTile(event, tid[0])
 
-#ToDo: Refactor brush-functions to classes, or get config done otherwise.
 
 class EraserTile:
 
     def __init__(self):
         self.tid = 0.
+
 
 class SimpleBrush(object):
     """
@@ -89,11 +92,12 @@ class SimpleBrush(object):
                _config(self): internal method, sets config-frame
     """
 
-    def __init__(self, master, tiles):
+    def __init__(self, master, tiles, name="Null"):
         self.master = master
-        self.size = 1
+        self.name = name
+        self.size = tk.IntVar(value=1)
         self.tiles = tiles
-        self._config()
+        #self._config()
 
     def paint(self, event):
         if len(self.master.cell_range) > 0 and len(self.tiles) > 0:
@@ -106,7 +110,25 @@ class SimpleBrush(object):
             return False
 
     def _config(self):
-        pass
+        print(self.master)
+        self.master.labelframe = tk.LabelFrame(self.master, bg="white", text="Config "+self.name)
+        self.master.labelframe.grid(row=1, column=1, sticky="nsew")
+        self.master.testlabel = tk.Label(self.master.labelframe, bg="blue", fg="white", textvariable=self.size)
+        self.master.testlabel.pack()
+        self.master.up_button = tk.Button(self.master.labelframe, text="+", command=self.increaseStat)
+        self.master.up_button.pack()
+        self.master.down_button = tk.Button(self.master.labelframe, text="-", command=self.decreaseStat)
+        self.master.down_button.pack()
+
+    def increaseStat(self, limit=10):
+        if self.size.get() < limit:
+            self.size.set(self.size.get()+1)
+        else: pass
+
+    def decreaseStat(self, limit=0):
+        if self.size.get() > 0:
+            self.size.set(self.size.get()-1)
+
 
 
 class ComplexBrush(SimpleBrush):
@@ -201,15 +223,11 @@ class MapTab(tk.Frame):
         self.canvas.bind("<Leave>", self.killFrame)
         self.canvas.bind("<Motion>", self.showFrame)
 
-
-
-
-
-    def paintCells(self,event):
+    def paintCells(self, event):
         cellx, celly = self.getCellpos(event)
-        size = self.master.master.brush.selected.size
+        size = self.master.master.brush.selected.size.get()
         del self.master.master.cell_range[:]
-        cells = self.getCellRange(cellx, celly, 5)
+        cells = self.getCellRange(cellx, celly, size)
         self.master.master.cell_range.extend(cells)
         self.master.master.brush.selected.paint(event)
         print(self.master.master.cell_range)
@@ -243,7 +261,7 @@ class MapTab(tk.Frame):
             self.canvas.delete(self.tile_dict[(cellx, celly)])
 
         if tile:
-            self.map_array[cellx,celly] = tile.tid
+            self.map_array[cellx, celly] = tile.tid
             if tile.tid == 0.0:
                 return
             map_posx, map_posy = iso(cellx * self.cell_width, celly * self.cell_height)
@@ -260,17 +278,6 @@ class MapTab(tk.Frame):
                 if oldcell:
                     self.killFrame(event)
                     self.drawFrame(event)
-
-
-
-                    #if cell[0] < oldcell[0]:
-                    #    print("West")
-                    #elif cell[0] > oldcell[0]:
-                    #    print("East")
-                    #elif cell[1] < oldcell[1]:
-                    #    print("North")
-                    #elif cell[1] > oldcell[1]:
-                    #    print("South")
                 else:
                     pass
             else:
@@ -278,7 +285,7 @@ class MapTab(tk.Frame):
 
     def drawFrame(self, event):
         print ("entered Canvas, activated draw Frame")
-        size = self.master.master.brush.selected.size
+        size = self.master.master.brush.selected.size.get()
         cell = self.getCellpos(event)
         cells = self.getCellRange(cell[0], cell[1], size)
         tl = min(cells)
@@ -291,24 +298,11 @@ class MapTab(tk.Frame):
         print (nw, ne, se, sw)
         self.brush_frame = self.canvas.create_polygon(sw, nw , ne, se, fill = "", outline="red")
 
-
-
-
-        pass
-
     def killFrame(self, event):
         print("left canvas, activated kill frame function")
         self.canvas.delete(self.brush_frame)
         self.brush_frame = False
 
-
-
-
-
-
-
-
-#
     def update(self):
         self.canvas.create_image()
         print(self.main.main_tilelist.images)

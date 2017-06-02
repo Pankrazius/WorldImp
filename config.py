@@ -57,10 +57,15 @@ class Msg:
 
 class Paths:
     """ Default Paths for loading / saving stuff"""
-
-    DEFAULT_LOAD = "Images"
-    DEFAULT_SAVE = "Tilesets"
-
+    D_IMAGES = "Images"
+    D_MAPS = "Maps"
+    D_TILESETS = "Tilesets"
+    D_BACKGROUNDS = "BG"
+    D_SPRITESHEETS = "Sprites"
+    D_CHARACTERS = "Characters"
+    D_SOUNDS = "Sounds"
+    D_DIALOGUE = "Dialogue"
+    D_SCRIPTS = "Scripts"
 
 class Dims:
     """Basic Dimensions and default values"""
@@ -74,6 +79,11 @@ class Dims:
     GRID_LMARGIN = 0
     GRID_VPADDING = 0
     GRID_HPADDING = 0
+
+class Pref:
+    """Preferences"""
+
+    ON_START = "New" # Restore, Load
 
 
 

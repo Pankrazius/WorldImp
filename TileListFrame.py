@@ -18,7 +18,7 @@ class TileListFrame(tk.Frame):
 
         ## Data Stuff
         self.top = top
-        self.trees = {}
+        #self.trees = {}
         self.tiles = {}
         self.images = {}
         self.active_tile = None
@@ -44,43 +44,28 @@ class TileListFrame(tk.Frame):
             tiles.append(event.widget)
 
 
-
-
     def _update(self):
         del self.master.tabs[0].brush.tiles[:] # clearing selected tiles list
-        print("called TilesetListFrame._update.")
         y = 0
-
-        #open_image = Image.open(image_path)
-
-        for tree in sorted(self.trees):
-            image_path = os.getcwd() + "/" + (self.trees[tree].find("tileset").get("image_path"))
-            #image = self.top.images[image_path]
-
-            tiles = (list(self.trees[tree].find("tileset")))
-            #print(image_path)
-            #print(tiles)
+        trees = {key : self.master.trees[key] for key in self.master.trees if self.master.trees[key].getroot().tag == "tileset"}
+        for tree in sorted(trees):
+            tileset = trees[tree].getroot()
+            image_path = tileset.get("source")
+            tiles = tileset.findall("tile")
             for t in tiles:
                 dims = int(t.get("x")), int(t.get("y")), int(t.get("x_")), int(t.get("y_"))
                 height = int(t.get("height"))
-                tid = t.get("tid")
-                print(dims)
+                tid = t.get("id")
                 open_image = Image.open(image_path)
-                print(open_image)
                 cropped_image = open_image.crop(dims)
                 image = ImageTk.PhotoImage(cropped_image)
-                self.images[t.get("tid")] = image
-                print(self.tiles)
-                tile = Tile(self.canvas, tid, image=image)
+                self.images[t.get("id")] = image
+                tile = Tile(self, tid=tid, image=image)
+                self.canvas.create_window(0,y, window=tile, anchor=tk.NW)
                 tile.bind("<Button-1>", self._select_single)
-
-                tile_return = self.canvas.create_window(0,y, window=tile, anchor=tk.NW)
-                self.tiles[tile_return]= tile
-
+                self.tiles[tid] = tile
                 for i in self.tiles.keys():
                     print(self.tiles[i].tid)
-
-
                 y += height
                 self.canvas.config(scrollregion=(0,0,0,y))
 
@@ -88,11 +73,10 @@ class TileListFrame(tk.Frame):
 class Tile(tk.Label):
     """subclass of Label. Containing Tile_ID"""
 
-    def __init__(self, top, tid, **kwargs):
-        tk.Label.__init__(self, top, **kwargs)
-        self.top = top
+    def __init__(self, *args, tid=None, **kwargs):
+        tk.Label.__init__(self, *args, **kwargs)
         self.tid = tid
-        self.state = False
+
 
 
 

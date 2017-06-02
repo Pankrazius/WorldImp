@@ -13,6 +13,8 @@ Dazu benötigt das Projekt:
 * Ton-Editor (SoundImp)
 * Diverse weitere Editoren für Feinheiten - Fraktionen, Beutelisten etc.
 
+Dem Gegenüber soll dann ein Interpreter für die generierten Spiele (ImpEngine) stehen.
+
 Das Programm soll die Eingabe der oben genannten Elemente erleichtern, die
 Daten speichern und der ImpEngine die notwendigen Dateien zur Verfügung
 stellen.
@@ -31,11 +33,12 @@ World Imp und alle subsequenten Elemente des Programms, die keinen eigenen
 Eintrag haben (TileList, TimberManagment) und so weiter.
 * Erstellen eines Notebooks für jeden Programmteil. Erledigt
 * Erstellen einer optischen Kachelliste. Erledigt
+* Projekt Speichern / Laden
 
 ToDo:
 
-* Kachelliste mit Minimalgröße versehen
-* Reitergrößen anpassen
+* Kachelliste mit Minimalgröße versehen. Erledigt
+* Reitergrößen anpassen. Erledigt
 
 
 2.2 TileImp
@@ -108,6 +111,9 @@ MapImp: Ebenen:
         Wall (Wandelemente und unveränderliche Hindernisse mit fixen
               Positionen)
         Obstacle(Veränderliche und/oder nicht fixierte Hindernisse)
+
+LogFile für Resourcenquellen schreiben (d.h. wenn ein Bild aus /home/user/images/tileset.png stammt und im
+Projekt dann relativ /projekt/images/tileset.png gespeichert wird.
 
 4. Status
 

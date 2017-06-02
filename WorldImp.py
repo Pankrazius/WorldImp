@@ -1,13 +1,21 @@
 from imports import *
 from MainWindow import MainWindow
 
+#class WorldImp(tk.Tk):
+#
+#    def __init__(self, *args, **kwargs):
+#        tk.Tk.__init__(self, *args, **kwargs)
+#        self.main_window = MainWindow(self)
+#        self.main_window.pack(fill=tk.BOTH, expand=1)
+
+
 def drawMenu(root):
     """MAIN MENU"""
     menu = tk.Menu(root)
     file = tk.Menu(menu, tearoff=0)
     file.add_command(label=Labels.MENU_NEW_PROJECT)
     file.add_command(label=Labels.MENU_LOAD_PROJECT)
-    file.add_command(label=Labels.MENU_SAVE_PROJECT)
+    file.add_command(label=Labels.MENU_SAVE_PROJECT, command=main_window.saveProject)
     file.add_command(label=Labels.MENU_QUIT, command=root.quit)
     menu.add_cascade(label=Labels.MENU_FILE, menu=file)
     edit = tk.Menu(menu, tearoff=0)
@@ -28,12 +36,23 @@ def drawMenu(root):
 
 if __name__ == "__main__":
 
+#    root = WorldImp()
+#    root.rowconfigure(0, weight=1)
+#    root.columnconfigure(0, weight=1)
+#    drawMenu(root)
+#    root.minsize(int(Dims.WIN_MIN_SIZE[0]), int(Dims.WIN_MIN_SIZE[1]))
+#    root.mainloop()
+
+
+
+
+
     root = tk.Tk()
     root.rowconfigure(0, weight=1)
     root.columnconfigure(0, weight=1)
     main_window = MainWindow(root)
     main_window.pack(fill=tk.BOTH, expand=1)
-    #main_window.grid(row=0, column=0, sticky="nesw")
+    main_window.grid(row=0, column=0, sticky="nesw")
     drawMenu(root)
     root.minsize(int(Dims.WIN_MIN_SIZE[0]), int(Dims.WIN_MIN_SIZE[1]))
     root.mainloop()

@@ -3,24 +3,26 @@ from imports import *
 
 class TilesetFrame(tk.Frame):
 
-    def __init__(self, top):
-        tk.Frame.__init__(self, top)
+    def __init__(self, *args, **kwargs):
+        tk.Frame.__init__(self, *args, **kwargs)
+        ## Layout Stuff
         self.grid(row=0, column=0, sticky="nesw")
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=10)
         self.grid_columnconfigure(1, weight=90)
         self.label = Labels.MAIN_LABEL_TILESET
-        self.top = top
         self.tile_editor = TileEditorFrame(self)
         self.tile_editor.config(bd=1, relief=tk.SUNKEN)
         self.tile_editor.grid(row=0, column=0, sticky="nesw")
         self.tileset_nb = ParentedNotebook(self)
         self.tileset_nb.grid(row=0, column=1, sticky="nesw")
+        ## Function Stuff
         self._createTab()
 
     def _createTab(self):
         """Private Methode of TilesetFrame, creates new TabFrame in TilesetFrame.nb"""
         page = TabFrame(self.tileset_nb)
+        print("Tab Name: ",page._name)
         self.tileset_nb.add(page, text=Labels.TILESET_NB_NEW)
 
     def _getTab(self):
@@ -39,7 +41,7 @@ class TilesetFrame(tk.Frame):
         print(self.master.check)
         n = filename.split("/")
         name1 = n[-1].split(".")[0]
-        tree = self.master.dummy_tree.tree.getroot()
+        tree = self.master.project_tree
         name_list = tree.find("tilesets").findall("tileset")
         print(name_list)
         if len(name_list) > 0:
@@ -49,25 +51,33 @@ class TilesetFrame(tk.Frame):
         else: return True
         return True
 
-    def loadImage(self):
-        options = {"filetypes": [("PNG image", ".png"), ("JPEG image", ".jpg")], "initialdir": Paths.DEFAULT_LOAD}
-        filename = tkfd.askopenfilename(**options)
+    def loadImage(self, load_from_tree=None):
+        if load_from_tree == None:
+            project = self.master.project_tree.getroot()
+            options = {"filetypes": [("PNG image", ".png"), ("JPEG image", ".jpg")], "initialdir": os.getcwd()}
+            filename = tkfd.askopenfilename(**options)
+        else:
+            filename = load_from_tree
         if filename:
             if self._checkFile(filename) == False:
                 print("Image of same name already opened.")
                 return False
 
             tab = self._getTab()
-            if tab.image is None:
+            if tab.tkimage is None:
                 with open(filename, mode="rb") as file:
-                    tab.imagepath = os.path.relpath(filename, os.getcwd())
-                    tab.image = Image.open(filename)
-                    tab.tkimage = ImageTk.PhotoImage(file=file)
-                    self.tileset_nb.tab(tab, text=file.name.split("/")[-1])
-                    tab.setTileset()
+
+                    id_ = self.master.newId("tilesets")
+                    name = "tileset_"+str(id_)+".xml"
+                    ## Check if ImageFile is inside the Projekt-Tree
+                    tab.imagepath = filename
+
+                    self.master.images[id_] = Image.open(tab.imagepath)
+                    tab.tkimage = ImageTk.PhotoImage(self.master.images[id_]) #file=file
+                    self.tileset_nb.tab(tab, text=name)
+                    tab.setTileset(name, tab.imagepath)
                     tab.canvas.create_image(0, 0, image=tab.tkimage, anchor=tk.NW)
                     tab.canvas.config(scrollregion=(0, 0, tab.tkimage.width(), tab.tkimage.height()))
-                    tab.create_tileset_button.config(state=tk.NORMAL)
                     tab.canvas.bind("<ButtonPress-1>", tab._onButtonPress)
                     tab.canvas.bind("<B1-Motion>", tab._onMotionPress)
                     tab.canvas.bind("<ButtonRelease-1>", tab._onButtonRelease)
@@ -83,21 +93,22 @@ class TilesetFrame(tk.Frame):
 
 class TabFrame(tk.Frame):
 
-    def __init__(self,top):
-        tk.Frame.__init__(self,top)
+    def __init__(self, *args, **kwargs):
+        tk.Frame.__init__(self, *args, **kwargs)
+        ## Data Stuff
         self.created = False
         self.rowconfigure(0, weight=1)
         self.rowconfigure(1, weight=0)
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=0)
         self.config(borderwidth=1, relief=tk.SUNKEN)
-        self.top = top
-        self.main = top.top.top
+        self.main = self.master.master.master
         self.imagepath = None
-        self.image = None
+        #self.image = None
         self.tkimage = None
         self.rect = Rectangle(self)
-        self.tree = None
+        self.tileset = None
+        self.key = None
         self.grid_lines = []
         self.ts_width = Dims.GRID_WIDTH
         self.ts_height = Dims.GRID_HEIGHT
@@ -107,6 +118,7 @@ class TabFrame(tk.Frame):
         self.tss_height = tk.StringVar()
         self.tss_lmargin = tk.StringVar()
         self.tss_tmargin = tk.StringVar()
+        ## Layout Stuff
         self.canvas = tk.Canvas(self)#, width=1, height=1)
         self.canvas.grid(row=0, column=0, sticky="nesw")
         self.canvas.grid_rowconfigure(0, weight=1)
@@ -118,13 +130,7 @@ class TabFrame(tk.Frame):
         self.canvas.config(xscrollcommand=self.hbar.set, yscrollcommand=self.vbar.set)
         self.buttonframe = tk.Frame(self, bd=1, relief=tk.RIDGE)
         self.buttonframe.grid(row=2, column=0, sticky="nesw")
-        #Buttons
-        self.create_tileset_button = tk.Button(self.buttonframe,
-                                               text=Labels.BUTTON_CREATE_TS,
-                                               state=tk.DISABLED,
-                                               command=self.makeTileset
-                                               )
-        self.create_tileset_button.pack(side=tk.LEFT, anchor=tk.NW)
+        ## Buttons
         self.apply_button = tk.Button(self.buttonframe,
                                       text=Labels.BUTTON_APPLY,
                                       state=tk.DISABLED,
@@ -204,30 +210,28 @@ class TabFrame(tk.Frame):
 
     def _onButtonRelease(self, event):  # resetting mouse, scrap rect on new click
         if self.rect.set is False:
+            self.apply_button.config(state=tk.NORMAL)
             self.rect.setup()
 
     def _getCell(self, x, y):
         return (x - self.ts_lmargin )// self.ts_width, (y - self.ts_tmargin) // self.ts_height
 
     def makeTile(self):
-        cropped = self.image.crop((self.rect.gx1, self.rect.gy1, self.rect.gx2, self.rect.gy2))
+        images = self.master.master.master.images
+        id_ = self.tileset.get("id")
+        print("MyImage is: ",images[id_])
+        print(self.rect.gx1, self.rect.gy1, self.rect.gx2, self.rect.gy2)
+        cropped = images[id_].crop((self.rect.gx1, self.rect.gy1, self.rect.gx2, self.rect.gy2))
         self.tile_image = ImageTk.PhotoImage(cropped)
-        tile_editor = self.top.top.tile_editor
-        if tile_editor.created is False:
-            tile_editor.tile = OrderedDict()
-            print(tile_editor.tile)
-            tile_editor.tile_image = self.tile_image
-            tile_editor.created = True
-        tile_editor.tile["x"] = self.rect.gx1
-        tile_editor.tile["y"] = self.rect.gy1
-        tile_editor.tile["x_"] = self.rect.gx2
-        tile_editor.tile["y_"] = self.rect.gy2
-        tile_editor.tile["width"] = self.tile_image.width()
-        tile_editor.tile["height"] = self.tile_image.height()
-        tile_editor.current_tree = self.tree
-        tile_editor.drawImages()
+        tile = newTile(self)
+        print ("tile in makeTile", tile)
+        tile_editor = self.master.master.tile_editor
+        tile_editor.tile_element = tile
+        tile_editor.current_tileset = self.tileset
+        tile_editor.current_tab = self
+        print("Self Element in MakeTile ", self.tileset)
+        tile_editor.drawImages(self.tile_image)
         tile_editor.confirm_button.config(state=tk.NORMAL)
-        self.scrapSelection()
 
     def scrapSelection(self):  # scrap actual selection, resetting temporary variables
         print("called scrapSelection", self)
@@ -255,109 +259,45 @@ class TabFrame(tk.Frame):
     def toggleFreeform(self):
         pass
 
-    def makeTileset(self):
-        if self.created == False:
-            make_tileset_tl = tk.Toplevel(self)
-            self.main.widgets["make_tileset"] = make_tileset_tl
-            labels = [
-                      (Labels.TOOL_WIDTH, self.tss_width),
-                      (Labels.TOOL_HEIGHT, self.tss_height),
-                      (Labels.TOOL_LMARGIN, self.tss_lmargin),
-                      (Labels.TOOL_TMARGIN, self.tss_tmargin)
-                      ]
-            frame = tk.Frame(make_tileset_tl)
-            for label in labels:
-                tk.Label(frame, text=label[0]).pack(side=tk.LEFT, anchor=tk.W)
-                entry = tk.Entry(frame, width=Dims.TOOL_ENTRY_WIDTH, textvariable=label[1])
-                entry.insert(0, str(label[1].get()))
-                entry.pack(side=tk.LEFT)
-            ok_button = tk.Button(make_tileset_tl, text=Labels.BUTTON_OK, command=self.confirmTileset)
-            make_tileset_tl.grid()
-            frame.grid(row=0, column=0, sticky="nesw")
-            ok_button.grid(row=1, column=0)
-
-        else: pass
-
-    def confirmTileset(self):
-        if self.tss_width.get() and self.tss_height.get() and self.tss_lmargin.get() and self.tss_tmargin.get():
-            print(self.tss_width, self.tss_height, self.tss_lmargin, self.tss_tmargin)
-            try:
-                int(self.tss_width.get())
-                int(self.tss_height.get())
-                int(self.tss_lmargin.get())
-                int(self.tss_tmargin.get())
-            except:
-                print("not an integer")
-                return False
-        else:
-            print("values not given")
-            return False
-        if "confirm_button" not in self.main.widgets:
-            confirm_button = tk.Toplevel(self)
-            self.main.widgets["confirm_button"] = confirm_button
-            text = tk.Label(confirm_button, text=Msg.ARE_YOU_SURE)
-            ok_button = tk.Button(confirm_button, text=Labels.BUTTON_OK, command=self.setTileset)
-            cancel_button = tk.Button(confirm_button, text=Labels.BUTTON_CANCEL, command=confirm_button.destroy)
-            confirm_button.grid()
-            text.pack()
-            ok_button.pack()
-            cancel_button.pack()
-        else:
-            pass
-
-    def setTileset(self):
-        print("CalledSetTileset")
-        id_ = self.newId()
-        # build TilesetElement for ProjectTree
-        project_ts = self.main.dummy_tree.root.find("tilesets")
-        project_element = et.Element("tileset")
-        project_element.set("id", id_)
-        print(project_element.get("id"))
-        project_element.set("file_path", self.imagepath.split(".")[0]+".tsx")
-        print(project_element.get("file_path"))
-        project_ts.append(project_element)
-        et.dump(project_ts)
+    def setTileset(self, name, source):
+        id_ = self.main.newId("tilesets")
+        # update ProjectTree
+        project = self.main.project_tree.getroot()
+        tilesets = project.find("tilesets")
+        tilesets_path = tilesets.get("path")
+        update = updateProjectTree("tileset", name, id_)
+        tilesets.append(update)
         # build TilesetTree
-        root = et.Element("root")
-        ts_element = et.Element("tileset")
-        ts_element.set("id", id_)
-        print(ts_element.get("id"))
-        ts_element.set("image_path", self.imagepath)
-        ts_element.set("tile_width", self.tss_width.get())
-        ts_element.set("tile_height", self.tss_width.get())
-        ts_element.set("lmargin", self.tss_lmargin.get())
-        ts_element.set("tmargin", self.tss_tmargin.get())
-        root.append(ts_element)
-        et.dump(ts_element)
-        self.tree = et.ElementTree(root)
-        # keep reference of TilesetTree
-        self.main.main_tilelist.trees[ts_element.get("id")] = self.tree
-        # close windows, update buttons
-        #self.main.widgets["confirm_button"].destroy()
-        #self.main.widgets["make_tileset"].destroy()
-        #del self.main.widgets["confirm_button"]
-        #del self.main.widgets["make_tileset"]
-        self.create_tileset_button.config(state=tk.DISABLED)
-        self.show_grid_button.config(state=tk.NORMAL)
+
+        self.tileset = newTileset(name, id_, source, tilesets_path)
+        tileset_tree = ElementTree(self.tileset)
+        self.key = "tileset_"+self.tileset.get("id")
+        self.main.trees[self.key] = tileset_tree
+        print("TreeList ",self.main.trees)
+        print("Dumping TilesetElement")
+        et.dump(self.tileset)
+        print("Dumping Project")
+        et.dump(project)
+        # Update TabFrame
+        self.created = True
+        # Update TileList
+#        self.main.main_tilelist.trees[id_] = self.tileset
+        ## Activate Buttons
         self.apply_button.config(state=tk.NORMAL)
         self.scrap_button.config(state=tk.NORMAL)
-        self.created = True
-
-    def newId(self):
-        return str(len(list(self.main.dummy_tree.root.find("tilesets")))+1)
-
 
 class TileEditorFrame(tk.Frame):
     """For editing single Tiles"""
-    def __init__(self, top):
+    def __init__(self, *args, **kwargs):
         ## Data Stuff
-        tk.Frame.__init__(self, top)
-        self.top = top
-        self.main = self.top.top
+        tk.Frame.__init__(self, *args, **kwargs)
+        self.main = self.master.master
         self.created = False
         self.tile_image = None
+        self.tile_element = None
         self.tile = {}
-        self.current_tree = None
+        self.current_tab = None
+        self.current_tileset = None
         self.current_ts_id = None
         self.has_animation = tk.StringVar()
         self.has_seasons = tk.StringVar()
@@ -443,26 +383,17 @@ class TileEditorFrame(tk.Frame):
         self.confirm_button.config(state=tk.DISABLED)
 
         # give tile uniqe ID, raise ID pool by one.
-        t1 = self.current_tree.find("tileset").attrib["id"]
-        t2 = self.newId()
-        print(t1, t2)
-        self.tile["tid"] = t1 + "." + t2
-        print(self.tile["tid"])
-        # make Element from OrderedDict, pack Element in Tileset-Tree
-        e = et.Element("tile")
-        for item in self.tile.items():
-            e.set(str(item[0]), str(item[1]))
-        self.current_tree.find("tileset").append(e)
+        t1 = self.current_tileset.get("id")
+        t2 = str(len(list(self.current_tileset.findall("tile"))))
+        id_ = t1 + "." + t2
+        self.tile_element.set("id", id_)
         # append tile to internal tilelist
-
+        self.current_tileset.append(self.tile_element)
         self.main.main_tilelist._update()
-
         self.tile_canvas.delete("all")
-        self.tile.clear()
+        self.tile_element = None
         self.created = False
-
-    def newId(self):
-        return str(len(list(self.current_tree.find("tileset")))+1)
+        self.current_tab.scrapSelection()
 
     def animationSubButtons(self):
         if self.has_animation.get():
@@ -488,8 +419,14 @@ class TileEditorFrame(tk.Frame):
             self.has_lock_checkbutton.deselect()
             self.has_lock_checkbutton.config(state=tk.DISABLED)
 
-    def drawImages(self):
-        self.tile_canvas.create_image(0,0, image=self.tile_image, anchor=tk.NW)
+    def drawTileFromElement(self):
         pass
+
+    def drawImages(self, image):
+        self.tile_canvas.create_image(0,0, image=image, anchor=tk.NW)
+        self.tile_image = image
+
+
+
 
 
